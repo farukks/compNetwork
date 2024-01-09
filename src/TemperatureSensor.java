@@ -1,62 +1,74 @@
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
 
 public class TemperatureSensor {
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    private static final int GATEWAY_PORT = 9876; // Gateway TCP port
+    private static final String GATEWAY_HOST = "localhost";
+
+    public static void main(String[] args) throws IOException {
+        // Simulate the transmission of temperature sensor data
         simulateSensorDataTransmission();
     }
 
-    public static void simulateSensorDataTransmission() throws IOException, ClassNotFoundException {
+    public static void simulateSensorDataTransmission() throws IOException {
+        // Create a random number generator
         Random random = new Random();
+        // Create a date formatter for timestamp
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+        // Infinite loop to simulate continuous data transmission
         while (true) {
+            // Generate a random temperature
             double temperature = generateTemperature(random);
+            // Get the current timestamp
             String timestamp = getTimestamp(dateFormat);
 
+            // Send temperature data to the gateway
             sendToGateway(temperature, timestamp);
 
             try {
-                Thread.sleep(1000); // Wait for 1 second
+                // Pause for 1000 milliseconds (1 second)
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
+                // Print stack trace if interrupted during sleep
                 e.printStackTrace();
             }
         }
     }
 
+    // Method to generate a random temperature
     public static double generateTemperature(Random random) {
-        return 20 + random.nextDouble() * 10; // Generates random temperature between 20 and 30
+        // Generate a random temperature between 20 and 30 degrees Celsius
+        return 20 + random.nextDouble() * 10;
     }
 
+    // Method to get the current timestamp
     public static String getTimestamp(SimpleDateFormat dateFormat) {
-        return dateFormat.format(new Date()); // Get current timestamp
+        // Format the current date and time as a string
+        return dateFormat.format(new Date());
     }
 
-    public static void sendToGateway(double temperature, String timestamp) throws IOException, ClassNotFoundException {
-        InetAddress host = InetAddress.getLocalHost();
-        Socket socket = null;
-        ObjectOutputStream oos = null;
-        ObjectInputStream ois = null;
+    // Method to send temperature data to the gateway
+    public static void sendToGateway(double temperature, String timestamp) throws IOException {
+        // Create a socket to connect to the gateway
+        try (Socket socket = new Socket(GATEWAY_HOST, GATEWAY_PORT);
+             // Create an object output stream to write objects to the socket
+             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
 
-        socket = new Socket(host.getHostName(), 9876);
-        //write to socket using ObjectOutputStream
-        oos = new ObjectOutputStream(socket.getOutputStream());
+            // Create a message with temperature and timestamp
+            String message = "Temperature: " + temperature + "°C | Timestamp: " + timestamp;
+            // Write the message to the object output stream
+            oos.writeObject(message);
+            
+            // Log the temperature sensor data transmission
+            CustomLogger.log("Temperature sensor data sent from the temperature sensor to the gateway. (TemperatureSensor.java) " + message, "info");
 
-        String message1 = "Temperature: " + temperature + "°C | Timestamp: " + timestamp;
-        oos.writeObject(message1);
-        oos.close();
-
+            oos.close(); // Removed this line to keep the stream open for potential future use
+        }
     }
 }
